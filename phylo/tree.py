@@ -34,6 +34,7 @@ class Node(object):
 
 
 class Tree(object):
+    """Simple tree structure - represents tree as linked list/dict."""
     def __init__(self, nodes):
         self.root = None
         if nodes:
@@ -66,44 +67,64 @@ class NewickIO(object):
         self.tree = Tree({'_0': self.currnode})
 
     def parse(self, tokens=None):
+        """Parses simplest format newick string and returns Tree structure.
+        
+        By default, internal nodes are numbered in order of encounter and
+            prefixed with an underscore.
+        """
         if type(tokens) == str:
             self._tokenize(tokens)
 
+        # Base case - close if terminal ';' is reached.
         token = self.tokens[0]
         if token == ';':
             return self.tree
 
+        # Parse tokens recursively
         action = self.grammar.get(token, self._add_leaf)
         action(token)
-
         self.tokens = self.tokens[1:]
+
         return self.parse(self.tokens)
 
     def _tokenize(self, newick_string):
+        """Splits newick string into set of tokens for parsing."""
         if newick_string.count('(') != newick_string.count(')'):
             raise ValueError('parentheses are unbalanced')
         self.tokens = re.findall(r'\w+|\(|\)|\;', newick_string)
 
-    def _add_branch(self, *argv):
+    def _add_branch(self, *tokens):
+        """Adds internal node from which a new branch will grow.
+
+        '(' -> open branch
+        """
         self.inode += 1
         newinternal = Node(f'_{self.inode}', self.currnode)
         self.currnode.add_child(newinternal)
         self.currnode = newinternal
         self.tree.add_node(f'_{self.inode}', self.currnode)
 
-    def _close_branch(self, *argv):
+    def _close_branch(self, *tokens):
+        """Returns to internal node from which branch originates.
+
+        ')' -> close branch
+        """
         self.inode -= 1
         self.currnode = self.tree.get_node(f'_{self.inode}')
 
-    def _add_leaf(self, *argv):
-        newleaf = Node(argv[-1], self.currnode)
+    def _add_leaf(self, *tokens):
+        """Adds terminal leaf without descendents.
+
+        <alphanumeric leaf name> -> Add leaf
+        """
+        newleaf = Node(tokens[-1], self.currnode)
         self.currnode.add_child(newleaf)
-        self.tree.add_node(argv[-1], newleaf)
+        self.tree.add_node(tokens[-1], newleaf)
         
 
 
 if __name__ == '__main__':
     NwkParser = NewickIO()
-    tree = NwkParser.parse('(B,(A,C,E),D);')
+    tree = NwkParser.parse('(B,(A,C,E),D,(H,(F,G)));')
     for name, node in tree.list_nodes():
         print(node)

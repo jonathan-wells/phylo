@@ -37,9 +37,11 @@ class PairwiseAlignment(object):
     ############################################################################ 
 
     def get_score(self, res1, res2):
+        """Return score from specified scoring matrix"""
         return self.scoremat[self.resind[res1], self.resind[res2]]
 
     def traceback(self, tmat, seq1_aln, seq2_aln, i, j):
+        """Decides necessary pointer in traceback matrix."""
         if tmat[i, j] == 2:
             seq1_aln += self.seq1[i-1]
             seq2_aln += self.seq2[j-1]
@@ -60,6 +62,7 @@ class PairwiseAlignment(object):
     ############################################################################ 
 
     def nw_align(self, gap_open=8):
+        """Needleman-Wunsch global alignment"""
         # Initialise matrices
         tmat = np.zeros((self.m + 1, self.n + 1))
         fmat = np.zeros((self.m + 1, self.n + 1))
