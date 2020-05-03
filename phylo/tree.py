@@ -34,11 +34,7 @@ class Node(object):
 
 
 class Tree(object):
-<<<<<<< HEAD
-    """Simple tree structure - represents tree as linked list/dict."""
-=======
     """Simple self._tree structure - represents self._tree as linked list/dict."""
->>>>>>> fixparser
     def __init__(self, nodes=None):
         self.root = None
         if nodes:
@@ -54,33 +50,6 @@ class Tree(object):
             if node.parent == None:
                 return node
 
-<<<<<<< HEAD
-    def list_nodes(self):
-        return list(self.nodes.values())
-
-    def get_root(self):
-        for node in self.nodes.values():
-            if node.parent == None:
-                return node
-
-    def post_order_traversal(self):
-        root = self.get_root()
-        return self._passdown_child(root, [])
-
-
-    def _passdown_child(self, node, pot):
-        for child in node.children:
-            self._passdown_child(child, pot)
-        pot.append(node)
-        return pot
-    
-    def __repr__(self):
-        nodes = []
-        for node in self.list_nodes():
-            nodes.append(str(node))
-        return '\n'.join(nodes)
-
-=======
     def post_order_traversal(self):
         root = self.get_root()
         return self._passdown_child(root, [])
@@ -97,7 +66,6 @@ class Tree(object):
             nodes.append(str(node))
         return '\n'.join(nodes)
 
->>>>>>> fixparser
 
 # TODO: Add tokens for internal nodes, branch-lengths etc.
 class NewickIO(object):
@@ -109,19 +77,9 @@ class NewickIO(object):
                 'closebranch': self._close_branch,
                 'addleaf': self._add_leaf
                 }
-<<<<<<< HEAD
-        
-        self.tokens = None
-        self.currnode = Node('_0')
-        self.currnode = None
-        # self.inode = 0
-        # self.tree = Tree({'_0': self.currnode})
-        self.tree = Tree()
-=======
         self._tree = Tree() 
         self._queue = []
         self._internalcount = 0
->>>>>>> fixparser
 
     def parse(self, tokens=None):
         if type(tokens) == str:
@@ -179,13 +137,6 @@ class NewickIO(object):
 
 if __name__ == '__main__':
     NwkParser = NewickIO()
-<<<<<<< HEAD
-    tree = NwkParser.parse('((A,B),(H,(F,G)));')
-    print(tree)
-    # test = tree.post_order_traversal()
-    # for i in test:
-    #     print(i.name)
-=======
     tree = NwkParser.parse('((A,B),(H,(G,F)));')
     # print(tree)
     # print(tree.get_root())
@@ -193,4 +144,3 @@ if __name__ == '__main__':
     test = tree.post_order_traversal()
     for i in test:
         print(i.name)
->>>>>>> fixparser
