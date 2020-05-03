@@ -35,7 +35,7 @@ class Node(object):
 
 class Tree(object):
     """Simple tree structure - represents tree as linked list/dict."""
-    def __init__(self, nodes):
+    def __init__(self, nodes=None):
         self.root = None
         if nodes:
             self.nodes = nodes
@@ -49,9 +49,32 @@ class Tree(object):
         return self.nodes[name]
 
     def list_nodes(self):
-        return list(self.nodes.items())
+        return list(self.nodes.values())
+
+    def get_root(self):
+        for node in self.nodes.values():
+            if node.parent == None:
+                return node
+
+    def post_order_traversal(self):
+        root = self.get_root()
+        return self._passdown_child(root, [])
 
 
+    def _passdown_child(self, node, pot):
+        for child in node.children:
+            self._passdown_child(child, pot)
+        pot.append(node)
+        return pot
+    
+    def __repr__(self):
+        nodes = []
+        for node in self.list_nodes():
+            nodes.append(str(node))
+        return '\n'.join(nodes)
+
+
+# TODO: Add tokens for internal nodes, branch-lengths etc.
 class NewickIO(object):
     """Parse and write Newick trees"""
 
@@ -63,8 +86,10 @@ class NewickIO(object):
         
         self.tokens = None
         self.currnode = Node('_0')
-        self.inode = 0
-        self.tree = Tree({'_0': self.currnode})
+        self.currnode = None
+        # self.inode = 0
+        # self.tree = Tree({'_0': self.currnode})
+        self.tree = Tree()
 
     def parse(self, tokens=None):
         """Parses simplest format newick string and returns Tree structure.
@@ -125,6 +150,8 @@ class NewickIO(object):
 
 if __name__ == '__main__':
     NwkParser = NewickIO()
-    tree = NwkParser.parse('(B,(A,C,E),D,(H,(F,G)));')
-    for name, node in tree.list_nodes():
-        print(node)
+    tree = NwkParser.parse('((A,B),(H,(F,G)));')
+    print(tree)
+    # test = tree.post_order_traversal()
+    # for i in test:
+    #     print(i.name)
