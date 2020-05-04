@@ -69,7 +69,7 @@ class Tree(object):
 
 # TODO: Add tokens for internal nodes, branch-lengths etc.
 class NewickIO(object):
-    """Parse and write Newick self._trees"""
+    """Parse and write Newick trees"""
 
     def __init__(self):
         self._grammar = {
@@ -80,6 +80,11 @@ class NewickIO(object):
         self._tree = Tree() 
         self._queue = []
         self._internalcount = 0
+    
+    def read(self, filename):
+        with open(filename) as infile:
+            nwkstring = infile.readline().strip()
+        return self.parse(nwkstring)
 
     def parse(self, tokens=None):
         if type(tokens) == str:
@@ -97,7 +102,33 @@ class NewickIO(object):
         
         self.parse(tokens[1:])
         return self._tree
+    
+    def write(self, tree, filename):
+        with open(filename, 'w') as outfile:
+            nwkstring = self.to_string(tree)
+            outfile.write(f'{nwkstring}\n')
 
+    def to_string(self, tree):
+        nwkstring = self._to_string(tree) + ';'
+        return nwkstring
+
+    def _to_string(self, tree, node=None, nwkstring=''):
+        if not node:
+            node = tree.get_root()
+        
+        if len(node.children) == 0:
+            nwkstring += node.name
+        else:
+            nwkstring += '('
+            n = len(node.children)
+            for i, child in enumerate(node.children):
+                nwkstring = self._to_string(tree, child, nwkstring)
+                if i < n - 1:
+                    nwkstring += ','
+            nwkstring += ')'
+        return nwkstring
+
+        
     def _tokenize(self, newick_string):
         """Splits newick string into set of tokens for parsing."""
         if newick_string.count('(') != newick_string.count(')'):
@@ -137,10 +168,8 @@ class NewickIO(object):
 
 if __name__ == '__main__':
     NwkParser = NewickIO()
-    tree = NwkParser.parse('((A,B),(H,(G,F)));')
-    # print(tree)
-    # print(tree.get_root())
+    tree = NwkParser.parse('((A,B),(C,(D,E)),(F,G,H));')
+    nwk = NwkParser.to_string(tree)
+    NwkParser.write(tree, 'test.nwk')
+    print(nwk)
 
-    test = tree.post_order_traversal()
-    for i in test:
-        print(i.name)
