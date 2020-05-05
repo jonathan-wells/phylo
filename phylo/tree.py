@@ -23,6 +23,21 @@ class Node(object):
 
     def get_children(self):
         return self.children
+    
+    @property
+    def isleaf(self):
+        if self.degree == 1:
+            return True
+        else:
+            return False
+
+    @property 
+    def degree(self):
+        degree = 0
+        if self.parent:
+            degree += 1
+        degree += len(self.children)
+        return degree
 
     def __repr__(self):
         name = f'Name: {self.name}'
@@ -63,6 +78,13 @@ class Tree(object):
             self._passdown_child(child, pot)
         return pot
     
+    @property
+    def isbinary(self):
+        for node in self.nodes:
+            if node.degree > 3:
+                return False
+        return True
+
     def __repr__(self):
         nodes = []
         for node in self.nodes:
@@ -78,4 +100,6 @@ if __name__ == '__main__':
     tree.add_node(root)
     tree.add_node(node)
     print(tree)
-
+    print(root.degree)
+    print(node.degree)
+    print(root.isleaf)
