@@ -1,20 +1,22 @@
 #!/usr/bin/env python3
 
-import re
-
 
 class Node(object):
 
-    def __init__(self, name=None, parent=None):
+    def __init__(self, name=None, parent=None, brlen=None):
         self.name = name
         self.parent = parent
         self.children = []
+        self.brlen = brlen
 
     def add_child(self, child):
         self.children.append(child)
     
     def add_parent(self, parent):
         self.parent = parent
+
+    def set_brlen(self, brlen):
+        self.brlen = brlen
 
     def get_parent(self):
         return self.parent
@@ -23,14 +25,15 @@ class Node(object):
         return self.children
 
     def __repr__(self):
-        name = self.name
+        name = f'Name: {self.name}'
         if self.parent == None:
-            parent = 'None'
+            parent = 'Parent: None'
         else:
-            parent = self.parent.name
-        children = ', '.join([child.name for child in self.children]) 
+            parent = f'Parent: {self.parent.name}'
+        children = 'Children: ['+', '.join([c.name for c in self.children])+']'
+        brlen = f'Branch length: {self.brlen}'
 
-        return f'Name: {name}\n\tParent: {parent}\n\tChildren: [{children}]'
+        return f'{name}\n\t{parent}\n\t{children}\n\t{brlen}'
 
 
 class Tree(object):
@@ -67,109 +70,12 @@ class Tree(object):
         return '\n'.join(nodes)
 
 
-# TODO: Add tokens for internal nodes, branch-lengths etc.
-class NewickIO(object):
-    """Parse and write Newick trees"""
-
-    def __init__(self):
-        self._grammar = {
-                'addbranch': self._add_branch,
-                'closebranch': self._close_branch,
-                'addleaf': self._add_leaf
-                }
-        self._tree = Tree() 
-        self._queue = []
-        self._internalcount = 0
-    
-    def read(self, filename):
-        with open(filename) as infile:
-            nwkstring = infile.readline().strip()
-        return self.parse(nwkstring)
-
-    def parse(self, tokens=None):
-        if type(tokens) == str:
-            tokens = self._tokenize(tokens)
-        
-        currtoken = tokens[0]
-        if currtoken == '(':
-            self._grammar['addbranch']()
-        elif currtoken == ')':
-            self._grammar['closebranch']()
-        elif re.match(r'\w+', currtoken):
-            self._grammar['addleaf'](currtoken)
-        elif currtoken == ';':
-            return
-        
-        self.parse(tokens[1:])
-        return self._tree
-    
-    def write(self, tree, filename):
-        with open(filename, 'w') as outfile:
-            nwkstring = self.to_string(tree)
-            outfile.write(f'{nwkstring}\n')
-
-    def to_string(self, tree):
-        nwkstring = self._to_string(tree) + ';'
-        return nwkstring
-
-    def _to_string(self, tree, node=None, nwkstring=''):
-        if not node:
-            node = tree.get_root()
-        
-        if len(node.children) == 0:
-            nwkstring += node.name
-        else:
-            nwkstring += '('
-            n = len(node.children)
-            for i, child in enumerate(node.children):
-                nwkstring = self._to_string(tree, child, nwkstring)
-                if i < n - 1:
-                    nwkstring += ','
-            nwkstring += ')'
-        return nwkstring
-
-        
-    def _tokenize(self, newick_string):
-        """Splits newick string into set of tokens for parsing."""
-        if newick_string.count('(') != newick_string.count(')'):
-            raise ValueError('parentheses are unbalanced')
-        return re.findall(r'\w+|\(|\)|\;', newick_string)
-
-    def _add_branch(self):
-        """Adds internal node from which a new branch will grow.
-
-        '(' -> open branch
-        """
-        if len(self._queue) == 0:
-            newinternal = Node(f'_{self._internalcount}')
-        else:
-            newinternal = Node(f'_{self._internalcount}', self._queue[-1])
-            self._queue[-1].add_child(newinternal)
-        self._queue.append(newinternal)
-        self._tree.add_node(newinternal)
-        self._internalcount += 1
-
-    def _close_branch(self):
-        """Returns to internal node from which branch originates.
-
-        ')' -> close branch
-        """
-        self._queue.pop()
-
-    def _add_leaf(self, name):
-        """Adds terminal leaf without descendents.
-
-        <alphanumeric leaf name> -> Add leaf
-        """
-        newleaf = Node(name, self._queue[-1])
-        self._queue[-1].add_child(newleaf)
-        self._tree.add_node(newleaf)
-
-
 if __name__ == '__main__':
-    NwkParser = NewickIO()
-    tree = NwkParser.parse('((A,B),(C,(D,E)),(F,G,H));')
-    nwk = NwkParser.to_string(tree)
-    NwkParser.write(tree, 'test.nwk')
-    print(nwk)
+    root = Node(name='_0')
+    node = Node(name='A', parent=root, brlen=0.1)
+    root.add_child(node)
+    tree = Tree()
+    tree.add_node(root)
+    tree.add_node(node)
+    print(tree)
 
