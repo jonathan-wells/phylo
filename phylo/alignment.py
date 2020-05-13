@@ -66,28 +66,28 @@ class PairwiseAlignment(object):
         # Initialise matrices
         tmat = np.zeros((self.m + 1, self.n + 1))
         fmat = np.zeros((self.m + 1, self.n + 1))
-        for i in range(self.m):
-            fmat[i+1, 0] = fmat[i, 0] - gap_open
-            tmat[i+1, 0] = 1
+        for i in range(1, self.m + 1):
+            fmat[i, 0] = fmat[i-1, 0] - gap_open
+            tmat[i, 0] = 1
         for j in range(self.n):
-            fmat[0, j+1] = fmat[0, j] - gap_open
-            tmat[0, j+1] = 3
+            fmat[0, j] = fmat[0, j-1] - gap_open
+            tmat[0, j] = 3
         
         # Populate scoring and traceback matrices
-        for i in range(self.m):
-            for j in range(self.n):
-                a, b = self.seq1[i], self.seq2[j]
-                match_mismatch = fmat[i, j] + self.get_score(a, b)
-                seq1_ins = fmat[i, j+1] - gap_open
-                seq1_del = fmat[i+1, j] - gap_open
+        for i in range(1, self.m + 1):
+            for j in range(1, self.n + 1):
+                a, b = self.seq1[i-1], self.seq2[j-1]
+                match = fmat[i-1, j-1] + self.get_score(a, b)
+                seq1_ins = fmat[i-1, j] - gap_open
+                seq1_del = fmat[i, j-1] - gap_open
                 
-                fmat[i+1, j+1] = max(match_mismatch, seq1_ins, seq1_del)
-                if fmat[i+1, j+1] == match_mismatch:
-                    tmat[i+1, j+1] = 2
-                elif fmat[i+1, j+1] == seq1_ins:
-                    tmat[i+1, j+1] = 1
-                elif fmat[i+1, j+1] == seq1_del:
-                    tmat[i+1, j+1] = 3
+                fmat[i, j] = max(match, seq1_ins, seq1_del)
+                if fmat[i, j] == match:
+                    tmat[i, j] = 2
+                elif fmat[i, j] == seq1_ins:
+                    tmat[i, j] = 1
+                elif fmat[i, j] == seq1_del:
+                    tmat[i, j] = 3
 
         # Traceback
         seq1_aln, seq2_aln = '', ''
@@ -107,20 +107,20 @@ class PairwiseAlignment(object):
         fmat = np.zeros((self.m + 1, self.n + 1))
         
         # Populate scoring and traceback matrices
-        for i in range(self.m):
-            for j in range(self.n):
-                a, b = self.seq1[i], self.seq2[j]
-                match_mismatch = fmat[i, j] + self.get_score(a, b)
-                seq1_ins = fmat[i, j+1] - gap_open
-                seq1_del = fmat[i+1, j] - gap_open
+        for i in range(1, self.m + 1):
+            for j in range(1, self.n + 1):
+                a, b = self.seq1[i-1], self.seq2[j-1]
+                match = fmat[i-1, j-1] + self.get_score(a, b)
+                seq1_ins = fmat[i-1, j] - gap_open
+                seq1_del = fmat[i, j-1] - gap_open
                 
-                fmat[i+1, j+1] = max(match_mismatch, seq1_ins, seq1_del, 0)
-                if fmat[i+1, j+1] == match_mismatch:
-                    tmat[i+1, j+1] = 2
-                elif fmat[i+1, j+1] == seq1_ins:
-                    tmat[i+1, j+1] = 1
-                elif fmat[i+1, j+1] == seq1_del:
-                    tmat[i+1, j+1] = 3
+                fmat[i, j] = max(match, seq1_ins, seq1_del, 0)
+                if fmat[i, j] == match:
+                    tmat[i, j] = 2
+                elif fmat[i, j] == seq1_ins:
+                    tmat[i, j] = 1
+                elif fmat[i, j] == seq1_del:
+                    tmat[i, j] = 3
 
         # Traceback
         seq1_aln, seq2_aln = '', ''
@@ -134,7 +134,93 @@ class PairwiseAlignment(object):
         return seq1_aln[::-1], seq2_aln[::-1]
 
     def swa_align(self, gap_open=8, gap_extend=1):
-        pass
+        tmat = np.zeros((self.m + 1, self.n + 1))
+        ixtmat = np.zeros((self.m + 1, self.n + 1))
+        iytmat = np.zeros((self.m + 1, self.n + 1))
+        
+        fmat = np.zeros((self.m + 1, self.n + 1))
+        ixmat = np.zeros((self.m + 1, self.n + 1))
+        iymat = np.zeros((self.m + 1, self.n + 1))
+        
+        for i in range(1, self.m + 1):
+            for j in range(1, self.n + 1):
+                a, b = self.seq1[i-1], self.seq2[j-1]
+
+                ixopen = fmat[i-1, j] - gap_open
+                ixextend = ixmat[i-1, j] - gap_extend
+                ixmat[i, j] = max(ixopen, ixextend)
+                
+                iyopen = fmat[i, j-1] - gap_open
+                iyextend = iymat[i, j-1] - gap_extend
+                iymat[i, j] = max(iyopen, iyextend)
+
+                fmatch = fmat[i-1, j-1] + self.get_score(a, b)
+                ixmatch = ixmat[i-1, j-1] + self.get_score(a, b)
+                iymatch = iymat[i-1, j-1] + self.get_score(a, b)
+                fmat[i, j] = max(fmatch, ixmatch, iymatch, 0)
+                
+                if fmat[i, j] == fmatch:
+                    tmat[i, j] = 2  # Go diagonal
+                elif fmat[i, j] == ixmatch:
+                    tmat[i, j] = 1  # Arrived from ix
+                elif fmat[i, j] == iymatch:
+                    tmat[i, j] = 3  # Arrived from iy
+                if ixmat[i, j] == ixopen:
+                    ixtmat[i, j] = 4  # Arrived from f
+                elif ixmat[i, j] == ixextend:
+                    ixtmat[i, j] = 5
+                if iymat[i, j] == iyopen:
+                    iytmat[i, j] = 4  # Arrived from f
+                elif iymat[i, j] == iyextend:
+                    iytmat[i, j] = 5
+        # Traceback
+
+        seq1_aln, seq2_aln = '', ''
+        i, j = np.unravel_index(np.argmax(fmat, axis=None), fmat.shape)
+        currmat = tmat
+        cname = 'tmat'
+        while currmat[i, j] != 0:
+            if currmat[i, j] == 2:
+                seq1_aln += self.seq1[i-1]
+                seq2_aln += self.seq2[j-1]
+                i -= 1
+                j -= 1
+            elif currmat[i, j] == 1: # Go to ixtmat
+                currmat = ixtmat
+                cname = 'ixtmat'
+                seq1_aln += self.seq1[i-1]
+                seq2_aln += self.seq2[j-1]
+                i -= 1
+                j -= 1
+            elif currmat[i, j] == 3:
+                currmat = iytmat
+                cname = 'iytmat'
+                seq1_aln += self.seq1[i-1]
+                seq2_aln += self.seq2[j-1]
+                i -= 1
+                j -= 1
+            elif currmat[i, j] == 5 and cname == 'ixtmat':
+                seq1_aln += self.seq1[i-1]
+                seq2_aln += '-'
+                i -= 1
+            elif currmat[i, j] == 5 and cname == 'iytmat':
+                seq1_aln += '-'
+                seq2_aln += self.seq2[j-1]
+                j -= 1
+            elif currmat[i, j] == 4 and cname == 'ixtmat':
+                currmat = tmat
+                cname = 'tname'
+                seq1_aln += self.seq1[i-1]
+                seq2_aln += '-'
+                i -= 1
+            elif currmat[i, j] == 4 and cname == 'iytmat':
+                currmat = tmat
+                cname = 'tname'
+                seq1_aln += '-'
+                seq2_aln += self.seq2[j-1]
+                j -= 1
+            
+        return seq1_aln[::-1], seq2_aln[::-1]
 
 def read_msa(filename):
     seqids = []
@@ -148,13 +234,21 @@ def calc_distance(seq1, seq2):
     pass
 
 if __name__ == '__main__':
-    test = PairwiseAlignment('HEAGAWGHEE',
-                             'PAWHEAE',
-                             'prot',
-                             'BLOSUM50')
-    s1, s2 = test.nw_align()
-    print(s1)
-    print(s2)
-    s1, s2 = test.sw_align()
-    print(s1)
-    print(s2)
+    a1 = 'ALFGLKSG--RNGRITCMASYKVKLITPDGPIEFECP'
+    a2 = 'GFLGLKTSLKRGDLAVAMASYKV-----DGTQEFECP'
+    print(a1)
+    print(a2)
+    print()
+    s1 = 'ALFGLKSGRNGRITCMASYKVKLITPDGPIEFECP'
+    s2 = 'GFLGLKTSLKRGDLAVAMASYKVDGTQEFECP'
+    test = PairwiseAlignment(s1, s2, 'prot', 'BLOSUM62')
+    a1, a2 = test.swa_align()
+    print(a1)
+    print(a2)
+    print()
+    a1, a2 = test.sw_align()
+    print(a1)
+    print(a2)
+    a1, a2 = test.nw_align()
+    print(a1)
+    print(a2)
